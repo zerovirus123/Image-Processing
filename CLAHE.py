@@ -14,6 +14,8 @@ import sys
 import cv2
 import os
 import matplotlib
+import piexif
+from PIL import Image
 
 cwd = os.getcwd()
 ap = argparse.ArgumentParser()
@@ -63,6 +65,11 @@ for img in os.listdir(os.path.abspath(images)):
     if ".DS_Store" in img:
         continue
 
+    #store EXIF data as bytes, as image conversions strip them away
+    exif_dict = piexif.load(cwd + "/" + images + img)
+
+    exif_bytes = piexif.dump(exif_dict)
+
     image = cv2.imread(cwd + "/" + images + img)
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
 
@@ -80,7 +87,12 @@ for img in os.listdir(os.path.abspath(images)):
 
         #-----Converting image from LAB Color model to RGB model--------------------
         final = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
-        matplotlib.image.imsave(final_img_dir + img +"_clim_" + str(clip_lim) + ".png", final)
+        result_dir = os.path.splitext(final_img_dir + img)[0] + "_clim_" + str(clip_lim) + ".JPEG"
+        matplotlib.image.imsave(result_dir, final)
+
+        im = Image.open(result_dir)
+        im = im.convert('RGB')
+        im.save(result_dir, "JPEG", exif=exif_bytes)
 
         fig = plt.figure()
         plt.title("Clip limit: " + str(clip_lim))
@@ -96,7 +108,7 @@ for img in os.listdir(os.path.abspath(images)):
         ax2= fig.add_subplot(1, 2, 2)
         drawHist(final_chans, ax2)
 
-        fig.savefig(histogram_dir + img + "clim_" + str(clip_lim) + ".png")
+        #fig.savefig(histogram_dir + img + "clim_" + str(clip_lim) + ".png")
 
         plt.close()
 
